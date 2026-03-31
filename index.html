@@ -9,8 +9,9 @@
 body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; background: #fff; color: #000; padding: 12px; }
 h1 { font-size: 16px; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px; }
 .subtitle { text-align: center; font-size: 11px; color: #666; margin-bottom: 10px; }
-.team-selector { text-align: center; margin-bottom: 10px; }
+.team-selector { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
 .team-selector select { font-size: 13px; padding: 4px 8px; font-family: inherit; }
+.team-logo { height: 36px; width: 36px; object-fit: contain; }
 .stats-bar { display: flex; justify-content: center; gap: 24px; font-size: 12px; margin-bottom: 10px; font-weight: 600; }
 .stats-bar span { color: #333; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -38,6 +39,7 @@ td.starter { text-align: left; padding-left: 8px; }
 <h1 id="page-title">MLB SEASON TRACKER</h1>
 <div class="subtitle" id="updated"></div>
 <div class="team-selector">
+  <img id="team-logo" class="team-logo" src="https://www.mlb.com/assets/images/team/logo/team-cap-on-light/144.svg" alt="Team logo">
   <select id="team-select">
     <optgroup label="AL East">
       <option value="110">Baltimore Orioles</option>
@@ -114,12 +116,19 @@ if (saved && teamSelect.querySelector(`option[value="${saved}"]`)) {
   teamSelect.value = saved;
 }
 
+const teamLogo = document.getElementById('team-logo');
+
 function getTeamId() { return parseInt(teamSelect.value); }
 function getTeamAbbr() { return TEAM_ABBR[getTeamId()] || 'TM'; }
 function getTeamName() { return teamSelect.selectedOptions[0]?.textContent || 'MLB'; }
+function updateLogo() { teamLogo.src = `https://www.mlb.com/assets/images/team/logo/team-cap-on-light/${getTeamId()}.svg`; }
+
+// Set logo for saved team on load
+updateLogo();
 
 teamSelect.addEventListener('change', () => {
   localStorage.setItem('mlb-tracker-team', teamSelect.value);
+  updateLogo();
   document.getElementById('content').innerHTML = '<div class="loading">Loading schedule...</div>';
   buildDashboard();
 });
