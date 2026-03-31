@@ -39,7 +39,7 @@ td.starter { text-align: left; padding-left: 8px; }
 <h1 id="page-title">MLB SEASON TRACKER</h1>
 <div class="subtitle" id="updated"></div>
 <div class="team-selector">
-  <img id="team-logo" class="team-logo" src="https://www.mlb.com/assets/images/team/logo/team-cap-on-light/144.svg" alt="Team logo">
+  <img id="team-logo" class="team-logo" src="https://www.mlbstatic.com/team-logos/144.svg" alt="Team logo">
   <select id="team-select">
     <optgroup label="AL East">
       <option value="110">Baltimore Orioles</option>
@@ -121,7 +121,7 @@ const teamLogo = document.getElementById('team-logo');
 function getTeamId() { return parseInt(teamSelect.value); }
 function getTeamAbbr() { return TEAM_ABBR[getTeamId()] || 'TM'; }
 function getTeamName() { return teamSelect.selectedOptions[0]?.textContent || 'MLB'; }
-function updateLogo() { teamLogo.src = `https://www.mlb.com/assets/images/team/logo/team-cap-on-light/${getTeamId()}.svg`; }
+function updateLogo() { teamLogo.src = `https://www.mlbstatic.com/team-logos/${getTeamId()}.svg`; }
 
 // Set logo for saved team on load
 updateLogo();
