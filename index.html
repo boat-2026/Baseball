@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Season Tracker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; background: #fff; color: #000; padding: 12px; }
+h1 { font-size: 16px; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px; }
+.subtitle { text-align: center; font-size: 11px; color: #666; margin-bottom: 10px; }
+.team-selector { text-align: center; margin-bottom: 10px; }
+.team-selector select { font-size: 13px; padding: 4px 8px; font-family: inherit; }
+.stats-bar { display: flex; justify-content: center; gap: 24px; font-size: 12px; margin-bottom: 10px; font-weight: 600; }
+.stats-bar span { color: #333; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: #000; color: #fff; font-weight: 600; font-size: 11px; padding: 5px 4px; text-align: center; position: sticky; top: 0; z-index: 2; }
+td { padding: 4px; text-align: center; border-bottom: 1px solid #ccc; white-space: nowrap; }
+tr.completed { background: #fff; }
+tr.completed:hover { background: #f5f5f5; }
+tr.today { background: #f0f0f0; font-weight: 600; }
+tr.upcoming td { color: #999; }
+tr.win td.wl { color: #000; font-weight: 700; }
+tr.loss td.wl { color: #000; font-weight: 400; }
+td.opp { text-align: left; padding-left: 8px; }
+td.starter { text-align: left; padding-left: 8px; }
+.loading { text-align: center; padding: 40px; font-size: 14px; color: #888; }
+.off-day { color: #bbb; font-style: italic; }
+.month-divider td { background: #eee; font-weight: 700; font-size: 11px; text-align: left; padding: 4px 8px; border-bottom: 2px solid #999; }
+@media print {
+  body { padding: 0; }
+  th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .month-divider td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<h1 id="page-title">MLB SEASON TRACKER</h1>
+<div class="subtitle" id="updated"></div>
+<div class="team-selector">
+  <select id="team-select">
+    <optgroup label="AL East">
+      <option value="110">Baltimore Orioles</option>
+      <option value="111">Boston Red Sox</option>
+      <option value="147">New York Yankees</option>
+      <option value="139">Tampa Bay Rays</option>
+      <option value="141">Toronto Blue Jays</option>
+    </optgroup>
+    <optgroup label="AL Central">
+      <option value="145">Chicago White Sox</option>
+      <option value="114">Cleveland Guardians</option>
+      <option value="116">Detroit Tigers</option>
+      <option value="118">Kansas City Royals</option>
+      <option value="142">Minnesota Twins</option>
+    </optgroup>
+    <optgroup label="AL West">
+      <option value="117">Houston Astros</option>
+      <option value="108">Los Angeles Angels</option>
+      <option value="133">Oakland Athletics</option>
+      <option value="136">Seattle Mariners</option>
+      <option value="140">Texas Rangers</option>
+    </optgroup>
+    <optgroup label="NL East">
+      <option value="144" selected>Atlanta Braves</option>
+      <option value="146">Miami Marlins</option>
+      <option value="121">New York Mets</option>
+      <option value="143">Philadelphia Phillies</option>
+      <option value="120">Washington Nationals</option>
+    </optgroup>
+    <optgroup label="NL Central">
+      <option value="112">Chicago Cubs</option>
+      <option value="113">Cincinnati Reds</option>
+      <option value="158">Milwaukee Brewers</option>
+      <option value="134">Pittsburgh Pirates</option>
+      <option value="138">St. Louis Cardinals</option>
+    </optgroup>
+    <optgroup label="NL West">
+      <option value="109">Arizona Diamondbacks</option>
+      <option value="115">Colorado Rockies</option>
+      <option value="119">Los Angeles Dodgers</option>
+      <option value="135">San Diego Padres</option>
+      <option value="137">San Francisco Giants</option>
+    </optgroup>
+  </select>
+</div>
+<div class="stats-bar">
+  <span id="record-display">&mdash;</span>
+  <span id="streak-display">&mdash;</span>
+  <span id="home-display">&mdash;</span>
+  <span id="away-display">&mdash;</span>
+</div>
+<div id="content"><div class="loading">Loading schedule...</div></div>
+
+<script>
+const API = 'https://statsapi.mlb.com/api/v1';
+const SEASON = new Date().getFullYear();
+
+const TEAM_ABBR = {
+  108: 'LAA', 109: 'ARI', 110: 'BAL', 111: 'BOS', 112: 'CHC',
+  113: 'CIN', 114: 'CLE', 115: 'COL', 116: 'DET', 117: 'HOU',
+  118: 'KC',  119: 'LAD', 120: 'WSH', 121: 'NYM', 133: 'OAK',
+  134: 'PIT', 135: 'SD',  136: 'SEA', 137: 'SF',  138: 'STL',
+  139: 'TB',  140: 'TEX', 141: 'TOR', 142: 'MIN', 143: 'PHI',
+  144: 'ATL', 145: 'CWS', 146: 'MIA', 147: 'NYY', 158: 'MIL'
+};
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October'];
+
+const teamSelect = document.getElementById('team-select');
+
+// Restore saved team
+const saved = localStorage.getItem('mlb-tracker-team');
+if (saved && teamSelect.querySelector(`option[value="${saved}"]`)) {
+  teamSelect.value = saved;
+}
+
+function getTeamId() { return parseInt(teamSelect.value); }
+function getTeamAbbr() { return TEAM_ABBR[getTeamId()] || 'TM'; }
+function getTeamName() { return teamSelect.selectedOptions[0]?.textContent || 'MLB'; }
+
+teamSelect.addEventListener('change', () => {
+  localStorage.setItem('mlb-tracker-team', teamSelect.value);
+  document.getElementById('content').innerHTML = '<div class="loading">Loading schedule...</div>';
+  buildDashboard();
+});
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `${days[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function monthName(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return MONTHS[d.getMonth()];
+}
+
+async function fetchSchedule() {
+  const url = `${API}/schedule?teamId=${getTeamId()}&season=${SEASON}&sportId=1&gameType=R&hydrate=linescore,decisions,probablePitcher`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.dates || [];
+}
+
+async function fetchBoxscore(gamePk) {
+  try {
+    const res = await fetch(`${API}/game/${gamePk}/boxscore`);
+    return await res.json();
+  } catch { return null; }
+}
+
+function getStarterStats(box, isHome) {
+  if (!box) return { name: '\u2014', ip: '', k: '', er: '' };
+  const side = isHome ? 'home' : 'away';
+  const team = box.teams?.[side];
+  if (!team) return { name: '\u2014', ip: '', k: '', er: '' };
+  const starterId = team.pitchers?.[0];
+  if (!starterId) return { name: '\u2014', ip: '', k: '', er: '' };
+  const player = team.players?.['ID' + starterId];
+  if (!player) return { name: '\u2014', ip: '', k: '', er: '' };
+  const stats = player.stats?.pitching || {};
+  const last = player.person?.lastName || player.person?.fullName || '\u2014';
+  return {
+    name: last,
+    ip: stats.inningsPitched || '',
+    k: stats.strikeOuts != null ? stats.strikeOuts : '',
+    er: stats.earnedRuns != null ? stats.earnedRuns : '',
+  };
+}
+
+async function buildDashboard() {
+  const teamId = getTeamId();
+  const abbr = getTeamAbbr();
+  const teamName = getTeamName();
+
+  document.getElementById('page-title').textContent = `${teamName.toUpperCase()} \u2014 ${SEASON} SEASON TRACKER`;
+  document.title = `${teamName} \u2014 ${SEASON} Season Tracker`;
+
+  const dates = await fetchSchedule();
+  const today = todayStr();
+
+  const rows = [];
+  let wins = 0, losses = 0, homeW = 0, homeL = 0, awayW = 0, awayL = 0;
+  let streak = '', streakCount = 0, lastResult = '';
+
+  const allGames = [];
+  for (const dateObj of dates) {
+    for (const game of dateObj.games) {
+      allGames.push({ date: dateObj.date, game });
+    }
+  }
+
+  // Fetch boxscores for completed games
+  const completed = allGames.filter(g => g.game.status?.detailedState === 'Final');
+  const boxscores = {};
+  const batchSize = 10;
+  for (let i = 0; i < completed.length; i += batchSize) {
+    const batch = completed.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(g => fetchBoxscore(g.game.gamePk)));
+    batch.forEach((g, idx) => { boxscores[g.game.gamePk] = results[idx]; });
+  }
+
+  let currentMonth = '';
+
+  for (const { date, game } of allGames) {
+    const gMonth = monthName(date);
+    if (gMonth !== currentMonth) {
+      currentMonth = gMonth;
+      rows.push({ type: 'month', label: currentMonth });
+    }
+
+    const isHome = game.teams.home.team.id === teamId;
+    const oppTeam = isHome ? game.teams.away.team.name : game.teams.home.team.name;
+    const oppLabel = isHome ? oppTeam : `@ ${oppTeam}`;
+    const status = game.status?.detailedState;
+    const isFinal = status === 'Final';
+    const isToday = date === today;
+    const isLive = status === 'In Progress' || status === 'Live';
+
+    let wl = '', record = '', tmR = '', oppR = '', tmH = '', oppH = '';
+    let starter = { name: '', ip: '', k: '', er: '' };
+    let rowClass = 'upcoming';
+
+    if (isFinal) {
+      const ls = game.linescore;
+      const teamRuns = isHome ? ls?.teams?.home?.runs : ls?.teams?.away?.runs;
+      const oppRuns = isHome ? ls?.teams?.away?.runs : ls?.teams?.home?.runs;
+      const teamHits = isHome ? ls?.teams?.home?.hits : ls?.teams?.away?.hits;
+      const oppHits = isHome ? ls?.teams?.away?.hits : ls?.teams?.home?.hits;
+
+      tmR = teamRuns ?? '';
+      oppR = oppRuns ?? '';
+      tmH = teamHits ?? '';
+      oppH = oppHits ?? '';
+
+      const won = teamRuns > oppRuns;
+      wl = won ? 'W' : 'L';
+      if (won) { wins++; if (isHome) homeW++; else awayW++; }
+      else { losses++; if (isHome) homeL++; else awayL++; }
+
+      if (wl === lastResult) { streakCount++; }
+      else { streakCount = 1; lastResult = wl; }
+      streak = `${wl}${streakCount}`;
+
+      record = `${wins}-${losses}`;
+      rowClass = won ? 'completed win' : 'completed loss';
+
+      const box = boxscores[game.gamePk];
+      starter = getStarterStats(box, isHome);
+    } else if (isToday || isLive) {
+      rowClass = 'today';
+      const pp = isHome ? game.teams.home.probablePitcher : game.teams.away.probablePitcher;
+      starter.name = pp?.lastName || pp?.fullName || 'TBD';
+      if (isLive) {
+        const ls = game.linescore;
+        tmR = isHome ? (ls?.teams?.home?.runs ?? '\u2014') : (ls?.teams?.away?.runs ?? '\u2014');
+        oppR = isHome ? (ls?.teams?.away?.runs ?? '\u2014') : (ls?.teams?.home?.runs ?? '\u2014');
+        tmH = isHome ? (ls?.teams?.home?.hits ?? '') : (ls?.teams?.away?.hits ?? '');
+        oppH = isHome ? (ls?.teams?.away?.hits ?? '') : (ls?.teams?.home?.hits ?? '');
+        wl = 'LIVE';
+      }
+    } else {
+      const pp = isHome ? game.teams.home.probablePitcher : game.teams.away.probablePitcher;
+      if (pp) starter.name = pp.lastName || pp.fullName || '';
+    }
+
+    rows.push({
+      type: 'game',
+      date: fmtDate(date),
+      rawDate: date,
+      wl, record, opp: oppLabel,
+      tmR, oppR, tmH, oppH,
+      starter: starter.name,
+      ip: starter.ip, k: starter.k, er: starter.er,
+      rowClass, isToday
+    });
+  }
+
+  // Render
+  let html = `<table><thead><tr>
+    <th>Date</th><th>W/L</th><th>Record</th><th>Opponent</th>
+    <th>${abbr}</th><th>OPP</th><th>${abbr} H</th><th>OPP H</th>
+    <th>Starter</th><th>IP</th><th>K</th><th>ER</th>
+  </tr></thead><tbody>`;
+
+  for (const row of rows) {
+    if (row.type === 'month') {
+      html += `<tr class="month-divider"><td colspan="12">${row.label}</td></tr>`;
+      continue;
+    }
+    const todayMark = row.isToday ? ' \u25C0' : '';
+    html += `<tr class="${row.rowClass}">
+      <td>${row.date}${todayMark}</td>
+      <td class="wl">${row.wl}</td>
+      <td>${row.record}</td>
+      <td class="opp">${row.opp}</td>
+      <td>${row.tmR}</td><td>${row.oppR}</td>
+      <td>${row.tmH}</td><td>${row.oppH}</td>
+      <td class="starter">${row.starter}</td>
+      <td>${row.ip}</td><td>${row.k}</td><td>${row.er}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('content').innerHTML = html;
+
+  // Summary bar
+  document.getElementById('record-display').textContent = `Record: ${wins}-${losses}`;
+  document.getElementById('streak-display').textContent = streak ? `Streak: ${streak}` : '';
+  document.getElementById('home-display').textContent = `Home: ${homeW}-${homeL}`;
+  document.getElementById('away-display').textContent = `Away: ${awayW}-${awayL}`;
+  document.getElementById('updated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+  // Scroll to today
+  const todayRow = document.querySelector('tr.today');
+  if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+buildDashboard().catch(err => {
+  document.getElementById('content').innerHTML = `<div class="loading">Error loading data. Open this file in a browser with internet access.<br><small>${err.message}</small></div>`;
+});
+
+// Refresh every 5 minutes
+setInterval(() => buildDashboard(), 5 * 60 * 1000);
+</script>
+</body>
+</html>
