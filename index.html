@@ -3,12 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MLB Season Tracker</title>
+<title>Baseball Season Tracker</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; background: #fff; color: #000; padding: 12px; }
 h1 { font-size: 16px; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px; }
 .subtitle { text-align: center; font-size: 11px; color: #666; margin-bottom: 10px; }
+.tabs { display: flex; justify-content: center; gap: 0; margin-bottom: 12px; }
+.tab { padding: 6px 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid #000; background: #fff; color: #000; font-family: inherit; }
+.tab:first-child { border-radius: 4px 0 0 4px; }
+.tab:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+.tab.active { background: #000; color: #fff; }
 .team-selector { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
 .team-selector select { font-size: 13px; padding: 4px 8px; font-family: inherit; }
 .team-logo { height: 36px; width: 36px; object-fit: contain; }
@@ -28,6 +33,9 @@ td.starter { text-align: left; padding-left: 8px; }
 .loading { text-align: center; padding: 40px; font-size: 14px; color: #888; }
 .off-day { color: #bbb; font-style: italic; }
 .month-divider td { background: #eee; font-weight: 700; font-size: 11px; text-align: left; padding: 4px 8px; border-bottom: 2px solid #999; }
+.panel { display: none; }
+.panel.active { display: block; }
+.conf-tag { display: inline-block; font-size: 10px; color: #888; margin-left: 4px; }
 @media print {
   body { padding: 0; }
   th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -36,102 +44,162 @@ td.starter { text-align: left; padding-left: 8px; }
 </style>
 </head>
 <body>
-<h1 id="page-title">MLB SEASON TRACKER</h1>
+<h1 id="page-title">BASEBALL SEASON TRACKER</h1>
 <div class="subtitle" id="updated"></div>
-<div class="team-selector">
-  <img id="team-logo" class="team-logo" src="https://www.mlbstatic.com/team-logos/144.svg" alt="Team logo">
-  <select id="team-select">
-    <optgroup label="AL East">
-      <option value="110">Baltimore Orioles</option>
-      <option value="111">Boston Red Sox</option>
-      <option value="147">New York Yankees</option>
-      <option value="139">Tampa Bay Rays</option>
-      <option value="141">Toronto Blue Jays</option>
-    </optgroup>
-    <optgroup label="AL Central">
-      <option value="145">Chicago White Sox</option>
-      <option value="114">Cleveland Guardians</option>
-      <option value="116">Detroit Tigers</option>
-      <option value="118">Kansas City Royals</option>
-      <option value="142">Minnesota Twins</option>
-    </optgroup>
-    <optgroup label="AL West">
-      <option value="117">Houston Astros</option>
-      <option value="108">Los Angeles Angels</option>
-      <option value="133">Oakland Athletics</option>
-      <option value="136">Seattle Mariners</option>
-      <option value="140">Texas Rangers</option>
-    </optgroup>
-    <optgroup label="NL East">
-      <option value="144" selected>Atlanta Braves</option>
-      <option value="146">Miami Marlins</option>
-      <option value="121">New York Mets</option>
-      <option value="143">Philadelphia Phillies</option>
-      <option value="120">Washington Nationals</option>
-    </optgroup>
-    <optgroup label="NL Central">
-      <option value="112">Chicago Cubs</option>
-      <option value="113">Cincinnati Reds</option>
-      <option value="158">Milwaukee Brewers</option>
-      <option value="134">Pittsburgh Pirates</option>
-      <option value="138">St. Louis Cardinals</option>
-    </optgroup>
-    <optgroup label="NL West">
-      <option value="109">Arizona Diamondbacks</option>
-      <option value="115">Colorado Rockies</option>
-      <option value="119">Los Angeles Dodgers</option>
-      <option value="135">San Diego Padres</option>
-      <option value="137">San Francisco Giants</option>
-    </optgroup>
-  </select>
+
+<div class="tabs">
+  <button class="tab active" id="tab-mlb" onclick="switchTab('mlb')">MLB</button>
+  <button class="tab" id="tab-college" onclick="switchTab('college')">COLLEGE</button>
 </div>
-<div class="stats-bar">
-  <span id="record-display">&mdash;</span>
-  <span id="streak-display">&mdash;</span>
-  <span id="home-display">&mdash;</span>
-  <span id="away-display">&mdash;</span>
+
+<!-- MLB PANEL -->
+<div class="panel active" id="panel-mlb">
+  <div class="team-selector">
+    <img id="mlb-logo" class="team-logo" src="https://www.mlbstatic.com/team-logos/144.svg" alt="Team logo">
+    <select id="mlb-team-select">
+      <optgroup label="AL East">
+        <option value="110">Baltimore Orioles</option>
+        <option value="111">Boston Red Sox</option>
+        <option value="147">New York Yankees</option>
+        <option value="139">Tampa Bay Rays</option>
+        <option value="141">Toronto Blue Jays</option>
+      </optgroup>
+      <optgroup label="AL Central">
+        <option value="145">Chicago White Sox</option>
+        <option value="114">Cleveland Guardians</option>
+        <option value="116">Detroit Tigers</option>
+        <option value="118">Kansas City Royals</option>
+        <option value="142">Minnesota Twins</option>
+      </optgroup>
+      <optgroup label="AL West">
+        <option value="117">Houston Astros</option>
+        <option value="108">Los Angeles Angels</option>
+        <option value="133">Oakland Athletics</option>
+        <option value="136">Seattle Mariners</option>
+        <option value="140">Texas Rangers</option>
+      </optgroup>
+      <optgroup label="NL East">
+        <option value="144" selected>Atlanta Braves</option>
+        <option value="146">Miami Marlins</option>
+        <option value="121">New York Mets</option>
+        <option value="143">Philadelphia Phillies</option>
+        <option value="120">Washington Nationals</option>
+      </optgroup>
+      <optgroup label="NL Central">
+        <option value="112">Chicago Cubs</option>
+        <option value="113">Cincinnati Reds</option>
+        <option value="158">Milwaukee Brewers</option>
+        <option value="134">Pittsburgh Pirates</option>
+        <option value="138">St. Louis Cardinals</option>
+      </optgroup>
+      <optgroup label="NL West">
+        <option value="109">Arizona Diamondbacks</option>
+        <option value="115">Colorado Rockies</option>
+        <option value="119">Los Angeles Dodgers</option>
+        <option value="135">San Diego Padres</option>
+        <option value="137">San Francisco Giants</option>
+      </optgroup>
+    </select>
+  </div>
+  <div class="stats-bar">
+    <span id="mlb-record">&mdash;</span>
+    <span id="mlb-streak">&mdash;</span>
+    <span id="mlb-home">&mdash;</span>
+    <span id="mlb-away">&mdash;</span>
+  </div>
+  <div id="mlb-content"><div class="loading">Loading schedule...</div></div>
 </div>
-<div id="content"><div class="loading">Loading schedule...</div></div>
+
+<!-- COLLEGE PANEL -->
+<div class="panel" id="panel-college">
+  <div class="team-selector">
+    <img id="college-logo" class="team-logo" src="" alt="Team logo">
+    <select id="college-team-select">
+      <optgroup label="ACC">
+        <option value="86">Boston College</option>
+        <option value="65">California</option>
+        <option value="117">Clemson</option>
+        <option value="93">Duke</option>
+        <option value="72">Florida State</option>
+        <option value="77">Georgia Tech</option>
+        <option value="83">Louisville</option>
+        <option value="176">Miami</option>
+        <option value="95">NC State</option>
+        <option value="81">Notre Dame</option>
+        <option value="96">North Carolina</option>
+        <option value="115">Pittsburgh</option>
+        <option value="64">Stanford</option>
+        <option value="131">Virginia</option>
+        <option value="132">Virginia Tech</option>
+        <option value="97" selected>Wake Forest</option>
+      </optgroup>
+      <optgroup label="SEC">
+        <option value="148">Alabama</option>
+        <option value="58">Arkansas</option>
+        <option value="55">Auburn</option>
+        <option value="75">Florida</option>
+        <option value="78">Georgia</option>
+        <option value="82">Kentucky</option>
+        <option value="85">LSU</option>
+        <option value="150">Mississippi State</option>
+        <option value="91">Missouri</option>
+        <option value="112">Oklahoma</option>
+        <option value="92">Ole Miss</option>
+        <option value="193">South Carolina</option>
+        <option value="199">Tennessee</option>
+        <option value="126">Texas</option>
+        <option value="123">Texas A&amp;M</option>
+        <option value="120">Vanderbilt</option>
+      </optgroup>
+      <optgroup label="Big Ten">
+        <option value="153">Illinois</option>
+        <option value="294">Indiana</option>
+        <option value="167">Iowa</option>
+        <option value="87">Maryland</option>
+        <option value="89">Michigan</option>
+        <option value="88">Michigan State</option>
+        <option value="90">Minnesota</option>
+        <option value="99">Nebraska</option>
+        <option value="411">Northwestern</option>
+        <option value="108">Ohio State</option>
+        <option value="273">Oregon</option>
+        <option value="414">Penn State</option>
+        <option value="189">Purdue</option>
+        <option value="102">Rutgers</option>
+        <option value="66">UCLA</option>
+        <option value="68">USC</option>
+        <option value="133">Washington</option>
+      </optgroup>
+      <optgroup label="Big 12">
+        <option value="59">Arizona State</option>
+        <option value="60">Arizona</option>
+        <option value="121">Baylor</option>
+        <option value="127">BYU</option>
+        <option value="161">Cincinnati</option>
+        <option value="124">Houston</option>
+        <option value="168">Kansas</option>
+        <option value="264">Kansas State</option>
+        <option value="110">Oklahoma State</option>
+        <option value="198">TCU</option>
+        <option value="201">Texas Tech</option>
+        <option value="160">UCF</option>
+        <option value="128">Utah</option>
+        <option value="136">West Virginia</option>
+      </optgroup>
+    </select>
+  </div>
+  <div class="stats-bar">
+    <span id="college-record">&mdash;</span>
+    <span id="college-streak">&mdash;</span>
+    <span id="college-home">&mdash;</span>
+    <span id="college-away">&mdash;</span>
+  </div>
+  <div id="college-content"><div class="loading">Select a team to load schedule...</div></div>
+</div>
 
 <script>
-const API = 'https://statsapi.mlb.com/api/v1';
-const SEASON = new Date().getFullYear();
-
-const TEAM_ABBR = {
-  108: 'LAA', 109: 'ARI', 110: 'BAL', 111: 'BOS', 112: 'CHC',
-  113: 'CIN', 114: 'CLE', 115: 'COL', 116: 'DET', 117: 'HOU',
-  118: 'KC',  119: 'LAD', 120: 'WSH', 121: 'NYM', 133: 'OAK',
-  134: 'PIT', 135: 'SD',  136: 'SEA', 137: 'SF',  138: 'STL',
-  139: 'TB',  140: 'TEX', 141: 'TOR', 142: 'MIN', 143: 'PHI',
-  144: 'ATL', 145: 'CWS', 146: 'MIA', 147: 'NYY', 158: 'MIL'
-};
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October'];
-
-const teamSelect = document.getElementById('team-select');
-
-// Restore saved team
-const saved = localStorage.getItem('mlb-tracker-team');
-if (saved && teamSelect.querySelector(`option[value="${saved}"]`)) {
-  teamSelect.value = saved;
-}
-
-const teamLogo = document.getElementById('team-logo');
-
-function getTeamId() { return parseInt(teamSelect.value); }
-function getTeamAbbr() { return TEAM_ABBR[getTeamId()] || 'TM'; }
-function getTeamName() { return teamSelect.selectedOptions[0]?.textContent || 'MLB'; }
-function updateLogo() { teamLogo.src = `https://www.mlbstatic.com/team-logos/${getTeamId()}.svg`; }
-
-// Set logo for saved team on load
-updateLogo();
-
-teamSelect.addEventListener('change', () => {
-  localStorage.setItem('mlb-tracker-team', teamSelect.value);
-  updateLogo();
-  document.getElementById('content').innerHTML = '<div class="loading">Loading schedule...</div>';
-  buildDashboard();
-});
+// ==================== SHARED ====================
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function todayStr() {
   const d = new Date();
@@ -149,18 +217,60 @@ function monthName(dateStr) {
   return MONTHS[d.getMonth()];
 }
 
-async function fetchSchedule() {
-  const url = `${API}/schedule?teamId=${getTeamId()}&season=${SEASON}&sportId=1&gameType=R&hydrate=linescore,decisions,probablePitcher`;
+// ==================== TAB SWITCHING ====================
+let activeTab = localStorage.getItem('tracker-tab') || 'mlb';
+
+function switchTab(tab) {
+  activeTab = tab;
+  localStorage.setItem('tracker-tab', tab);
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'mlb') buildMLBDashboard();
+  else buildCollegeDashboard();
+}
+
+// ==================== MLB ====================
+const MLB_API = 'https://statsapi.mlb.com/api/v1';
+const SEASON = new Date().getFullYear();
+
+const TEAM_ABBR = {
+  108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',116:'DET',117:'HOU',
+  118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'OAK',134:'PIT',135:'SD',136:'SEA',137:'SF',138:'STL',
+  139:'TB',140:'TEX',141:'TOR',142:'MIN',143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'
+};
+
+const mlbSelect = document.getElementById('mlb-team-select');
+const mlbLogo = document.getElementById('mlb-logo');
+
+const savedMlb = localStorage.getItem('mlb-tracker-team');
+if (savedMlb && mlbSelect.querySelector(`option[value="${savedMlb}"]`)) mlbSelect.value = savedMlb;
+
+function mlbId() { return parseInt(mlbSelect.value); }
+function mlbAbbr() { return TEAM_ABBR[mlbId()] || 'TM'; }
+function mlbName() { return mlbSelect.selectedOptions[0]?.textContent || 'MLB'; }
+function updateMlbLogo() { mlbLogo.src = `https://www.mlbstatic.com/team-logos/${mlbId()}.svg`; }
+
+updateMlbLogo();
+
+mlbSelect.addEventListener('change', () => {
+  localStorage.setItem('mlb-tracker-team', mlbSelect.value);
+  updateMlbLogo();
+  document.getElementById('mlb-content').innerHTML = '<div class="loading">Loading schedule...</div>';
+  buildMLBDashboard();
+});
+
+async function fetchMLBSchedule() {
+  const url = `${MLB_API}/schedule?teamId=${mlbId()}&season=${SEASON}&sportId=1&gameType=R&hydrate=linescore,decisions,probablePitcher`;
   const res = await fetch(url);
   const data = await res.json();
   return data.dates || [];
 }
 
 async function fetchBoxscore(gamePk) {
-  try {
-    const res = await fetch(`${API}/game/${gamePk}/boxscore`);
-    return await res.json();
-  } catch { return null; }
+  try { const res = await fetch(`${MLB_API}/game/${gamePk}/boxscore`); return await res.json(); }
+  catch { return null; }
 }
 
 function getStarterStats(box, isHome) {
@@ -174,23 +284,18 @@ function getStarterStats(box, isHome) {
   if (!player) return { name: '\u2014', ip: '', k: '', er: '' };
   const stats = player.stats?.pitching || {};
   const last = player.person?.lastName || player.person?.fullName || '\u2014';
-  return {
-    name: last,
-    ip: stats.inningsPitched || '',
-    k: stats.strikeOuts != null ? stats.strikeOuts : '',
-    er: stats.earnedRuns != null ? stats.earnedRuns : '',
-  };
+  return { name: last, ip: stats.inningsPitched || '', k: stats.strikeOuts != null ? stats.strikeOuts : '', er: stats.earnedRuns != null ? stats.earnedRuns : '' };
 }
 
-async function buildDashboard() {
-  const teamId = getTeamId();
-  const abbr = getTeamAbbr();
-  const teamName = getTeamName();
+async function buildMLBDashboard() {
+  const teamId = mlbId();
+  const abbr = mlbAbbr();
+  const teamName = mlbName();
 
   document.getElementById('page-title').textContent = `${teamName.toUpperCase()} \u2014 ${SEASON} SEASON TRACKER`;
   document.title = `${teamName} \u2014 ${SEASON} Season Tracker`;
 
-  const dates = await fetchSchedule();
+  const dates = await fetchMLBSchedule();
   const today = todayStr();
 
   const rows = [];
@@ -199,12 +304,9 @@ async function buildDashboard() {
 
   const allGames = [];
   for (const dateObj of dates) {
-    for (const game of dateObj.games) {
-      allGames.push({ date: dateObj.date, game });
-    }
+    for (const game of dateObj.games) allGames.push({ date: dateObj.date, game });
   }
 
-  // Fetch boxscores for completed games
   const completed = allGames.filter(g => g.game.status?.detailedState === 'Final');
   const boxscores = {};
   const batchSize = 10;
@@ -215,13 +317,9 @@ async function buildDashboard() {
   }
 
   let currentMonth = '';
-
   for (const { date, game } of allGames) {
     const gMonth = monthName(date);
-    if (gMonth !== currentMonth) {
-      currentMonth = gMonth;
-      rows.push({ type: 'month', label: currentMonth });
-    }
+    if (gMonth !== currentMonth) { currentMonth = gMonth; rows.push({ type: 'month', label: currentMonth }); }
 
     const isHome = game.teams.home.team.id === teamId;
     const oppTeam = isHome ? game.teams.away.team.name : game.teams.home.team.name;
@@ -231,8 +329,8 @@ async function buildDashboard() {
     const isToday = date === today;
     const isLive = status === 'In Progress' || status === 'Live';
 
-    let wl = '', record = '', tmR = '', oppR = '', tmH = '', oppH = '';
-    let starter = { name: '', ip: '', k: '', er: '' };
+    let wl='', record='', tmR='', oppR='', tmH='', oppH='';
+    let starter = { name:'', ip:'', k:'', er:'' };
     let rowClass = 'upcoming';
 
     if (isFinal) {
@@ -241,26 +339,15 @@ async function buildDashboard() {
       const oppRuns = isHome ? ls?.teams?.away?.runs : ls?.teams?.home?.runs;
       const teamHits = isHome ? ls?.teams?.home?.hits : ls?.teams?.away?.hits;
       const oppHits = isHome ? ls?.teams?.away?.hits : ls?.teams?.home?.hits;
-
-      tmR = teamRuns ?? '';
-      oppR = oppRuns ?? '';
-      tmH = teamHits ?? '';
-      oppH = oppHits ?? '';
-
+      tmR = teamRuns ?? ''; oppR = oppRuns ?? ''; tmH = teamHits ?? ''; oppH = oppHits ?? '';
       const won = teamRuns > oppRuns;
       wl = won ? 'W' : 'L';
-      if (won) { wins++; if (isHome) homeW++; else awayW++; }
-      else { losses++; if (isHome) homeL++; else awayL++; }
-
-      if (wl === lastResult) { streakCount++; }
-      else { streakCount = 1; lastResult = wl; }
+      if (won) { wins++; if (isHome) homeW++; else awayW++; } else { losses++; if (isHome) homeL++; else awayL++; }
+      if (wl === lastResult) streakCount++; else { streakCount = 1; lastResult = wl; }
       streak = `${wl}${streakCount}`;
-
       record = `${wins}-${losses}`;
       rowClass = won ? 'completed win' : 'completed loss';
-
-      const box = boxscores[game.gamePk];
-      starter = getStarterStats(box, isHome);
+      starter = getStarterStats(boxscores[game.gamePk], isHome);
     } else if (isToday || isLive) {
       rowClass = 'today';
       const pp = isHome ? game.teams.home.probablePitcher : game.teams.away.probablePitcher;
@@ -278,14 +365,150 @@ async function buildDashboard() {
       if (pp) starter.name = pp.lastName || pp.fullName || '';
     }
 
+    rows.push({ type:'game', date:fmtDate(date), rawDate:date, wl, record, opp:oppLabel, tmR, oppR, tmH, oppH, starter:starter.name, ip:starter.ip, k:starter.k, er:starter.er, rowClass, isToday });
+  }
+
+  let html = `<table><thead><tr>
+    <th>Date</th><th>W/L</th><th>Record</th><th>Opponent</th>
+    <th>${abbr}</th><th>OPP</th><th>${abbr} H</th><th>OPP H</th>
+    <th>Starter</th><th>IP</th><th>K</th><th>ER</th>
+  </tr></thead><tbody>`;
+  for (const row of rows) {
+    if (row.type === 'month') { html += `<tr class="month-divider"><td colspan="12">${row.label}</td></tr>`; continue; }
+    const todayMark = row.isToday ? ' \u25C0' : '';
+    html += `<tr class="${row.rowClass}"><td>${row.date}${todayMark}</td><td class="wl">${row.wl}</td><td>${row.record}</td><td class="opp">${row.opp}</td><td>${row.tmR}</td><td>${row.oppR}</td><td>${row.tmH}</td><td>${row.oppH}</td><td class="starter">${row.starter}</td><td>${row.ip}</td><td>${row.k}</td><td>${row.er}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('mlb-content').innerHTML = html;
+
+  document.getElementById('mlb-record').textContent = `Record: ${wins}-${losses}`;
+  document.getElementById('mlb-streak').textContent = streak ? `Streak: ${streak}` : '';
+  document.getElementById('mlb-home').textContent = `Home: ${homeW}-${homeL}`;
+  document.getElementById('mlb-away').textContent = `Away: ${awayW}-${awayL}`;
+  document.getElementById('updated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+  const todayRow = document.querySelector('#mlb-content tr.today');
+  if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ==================== COLLEGE ====================
+const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports/baseball/college-baseball';
+
+const collegeSelect = document.getElementById('college-team-select');
+const collegeLogo = document.getElementById('college-logo');
+
+const savedCollege = localStorage.getItem('college-tracker-team');
+if (savedCollege && collegeSelect.querySelector(`option[value="${savedCollege}"]`)) collegeSelect.value = savedCollege;
+
+function collegeId() { return parseInt(collegeSelect.value); }
+function collegeName() { return collegeSelect.selectedOptions[0]?.textContent || 'Team'; }
+
+function updateCollegeLogo() {
+  collegeLogo.src = `https://a.espncdn.com/i/teamlogos/ncaa/500/${collegeId()}.png`;
+}
+updateCollegeLogo();
+
+collegeSelect.addEventListener('change', () => {
+  localStorage.setItem('college-tracker-team', collegeSelect.value);
+  updateCollegeLogo();
+  document.getElementById('college-content').innerHTML = '<div class="loading">Loading schedule...</div>';
+  buildCollegeDashboard();
+});
+
+async function fetchCollegeSchedule(teamId) {
+  const url = `${ESPN_API}/teams/${teamId}/schedule`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data;
+}
+
+async function buildCollegeDashboard() {
+  const teamId = collegeId();
+  const teamName = collegeName();
+
+  document.getElementById('page-title').textContent = `${teamName.toUpperCase()} \u2014 ${SEASON} SEASON TRACKER`;
+  document.title = `${teamName} \u2014 ${SEASON} Season Tracker`;
+
+  let data;
+  try {
+    data = await fetchCollegeSchedule(teamId);
+  } catch (err) {
+    document.getElementById('college-content').innerHTML = `<div class="loading">Error loading data.<br><small>${err.message}</small></div>`;
+    return;
+  }
+
+  const events = data.events || [];
+  const today = todayStr();
+
+  const rows = [];
+  let wins = 0, losses = 0, homeW = 0, homeL = 0, awayW = 0, awayL = 0;
+  let streak = '', streakCount = 0, lastResult = '';
+
+  let currentMonth = '';
+
+  for (const event of events) {
+    const comp = event.competitions?.[0];
+    if (!comp) continue;
+
+    const dateRaw = event.date;
+    const dateOnly = dateRaw.substring(0, 10);
+    const gMonth = monthName(dateOnly);
+    if (gMonth !== currentMonth) { currentMonth = gMonth; rows.push({ type: 'month', label: currentMonth }); }
+
+    // Figure out which competitor is our team
+    let us = null, them = null;
+    for (const c of comp.competitors) {
+      if (parseInt(c.id) === teamId) us = c;
+      else them = c;
+    }
+    if (!us || !them) continue;
+
+    const isHome = us.homeAway === 'home';
+    const oppName = them.team?.displayName || them.team?.shortDisplayName || 'TBD';
+    const oppLabel = isHome ? oppName : `@ ${oppName}`;
+    const isConf = comp.conferenceCompetition || false;
+
+    const status = comp.status?.type?.name || '';
+    const isFinal = status === 'STATUS_FINAL';
+    const isToday = dateOnly === today;
+    const isLive = status === 'STATUS_IN_PROGRESS' || status === 'STATUS_HALFTIME';
+
+    let wl = '', record = '', tmR = '', oppR = '';
+    let rowClass = 'upcoming';
+
+    if (isFinal) {
+      const usScore = parseInt(us.score?.displayValue || us.score || '0');
+      const themScore = parseInt(them.score?.displayValue || them.score || '0');
+      tmR = usScore;
+      oppR = themScore;
+
+      const won = usScore > themScore;
+      wl = won ? 'W' : 'L';
+      if (won) { wins++; if (isHome) homeW++; else awayW++; }
+      else { losses++; if (isHome) homeL++; else awayL++; }
+
+      if (wl === lastResult) streakCount++;
+      else { streakCount = 1; lastResult = wl; }
+      streak = `${wl}${streakCount}`;
+
+      record = `${wins}-${losses}`;
+      rowClass = won ? 'completed win' : 'completed loss';
+    } else if (isToday || isLive) {
+      rowClass = 'today';
+      if (isLive) {
+        tmR = us.score?.displayValue || us.score || '\u2014';
+        oppR = them.score?.displayValue || them.score || '\u2014';
+        wl = 'LIVE';
+      }
+    }
+
     rows.push({
       type: 'game',
-      date: fmtDate(date),
-      rawDate: date,
+      date: fmtDate(dateOnly),
+      rawDate: dateOnly,
       wl, record, opp: oppLabel,
-      tmR, oppR, tmH, oppH,
-      starter: starter.name,
-      ip: starter.ip, k: starter.k, er: starter.er,
+      tmR, oppR,
+      conf: isConf,
       rowClass, isToday
     });
   }
@@ -293,49 +516,38 @@ async function buildDashboard() {
   // Render
   let html = `<table><thead><tr>
     <th>Date</th><th>W/L</th><th>Record</th><th>Opponent</th>
-    <th>${abbr}</th><th>OPP</th><th>${abbr} H</th><th>OPP H</th>
-    <th>Starter</th><th>IP</th><th>K</th><th>ER</th>
+    <th>TM</th><th>OPP</th>
   </tr></thead><tbody>`;
 
   for (const row of rows) {
-    if (row.type === 'month') {
-      html += `<tr class="month-divider"><td colspan="12">${row.label}</td></tr>`;
-      continue;
-    }
+    if (row.type === 'month') { html += `<tr class="month-divider"><td colspan="6">${row.label}</td></tr>`; continue; }
     const todayMark = row.isToday ? ' \u25C0' : '';
-    html += `<tr class="${row.rowClass}">
-      <td>${row.date}${todayMark}</td>
-      <td class="wl">${row.wl}</td>
-      <td>${row.record}</td>
-      <td class="opp">${row.opp}</td>
-      <td>${row.tmR}</td><td>${row.oppR}</td>
-      <td>${row.tmH}</td><td>${row.oppH}</td>
-      <td class="starter">${row.starter}</td>
-      <td>${row.ip}</td><td>${row.k}</td><td>${row.er}</td>
-    </tr>`;
+    const confTag = row.conf ? '<span class="conf-tag">*</span>' : '';
+    html += `<tr class="${row.rowClass}"><td>${row.date}${todayMark}</td><td class="wl">${row.wl}</td><td>${row.record}</td><td class="opp">${row.opp}${confTag}</td><td>${row.tmR}</td><td>${row.oppR}</td></tr>`;
   }
 
   html += '</tbody></table>';
-  document.getElementById('content').innerHTML = html;
+  html += '<div style="text-align:center;font-size:10px;color:#aaa;margin-top:6px;">* = conference game</div>';
+  document.getElementById('college-content').innerHTML = html;
 
-  // Summary bar
-  document.getElementById('record-display').textContent = `Record: ${wins}-${losses}`;
-  document.getElementById('streak-display').textContent = streak ? `Streak: ${streak}` : '';
-  document.getElementById('home-display').textContent = `Home: ${homeW}-${homeL}`;
-  document.getElementById('away-display').textContent = `Away: ${awayW}-${awayL}`;
+  document.getElementById('college-record').textContent = `Record: ${wins}-${losses}`;
+  document.getElementById('college-streak').textContent = streak ? `Streak: ${streak}` : '';
+  document.getElementById('college-home').textContent = `Home: ${homeW}-${homeL}`;
+  document.getElementById('college-away').textContent = `Away: ${awayW}-${awayL}`;
   document.getElementById('updated').textContent = `Last updated: ${new Date().toLocaleString()}`;
 
-  // Scroll to today
-  const todayRow = document.querySelector('tr.today');
+  const todayRow = document.querySelector('#college-content tr.today');
   if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-buildDashboard().catch(err => {
-  document.getElementById('content').innerHTML = `<div class="loading">Error loading data. Open this file in a browser with internet access.<br><small>${err.message}</small></div>`;
-});
+// ==================== INIT ====================
+switchTab(activeTab);
 
 // Refresh every 5 minutes
-setInterval(() => buildDashboard(), 5 * 60 * 1000);
+setInterval(() => {
+  if (activeTab === 'mlb') buildMLBDashboard();
+  else buildCollegeDashboard();
+}, 5 * 60 * 1000);
 </script>
 </body>
 </html>
