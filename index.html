@@ -36,6 +36,23 @@ td.starter { text-align: left; padding-left: 8px; }
 .panel { display: none; }
 .panel.active { display: block; }
 .conf-tag { display: inline-block; font-size: 10px; color: #888; margin-left: 4px; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 600px) {
+  body { padding: 6px; }
+  h1 { font-size: 14px; }
+  .tabs { margin-bottom: 8px; }
+  .tab { padding: 6px 16px; font-size: 12px; }
+  .team-selector { gap: 6px; margin-bottom: 6px; }
+  .team-selector select { font-size: 14px; padding: 6px 8px; max-width: 70vw; }
+  .team-logo { height: 28px; width: 28px; }
+  .stats-bar { flex-wrap: wrap; gap: 8px 16px; font-size: 11px; margin-bottom: 8px; }
+  table { font-size: 11px; }
+  th { font-size: 10px; padding: 4px 2px; }
+  td { padding: 3px 2px; }
+  td.opp { padding-left: 4px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+  td.starter { padding-left: 4px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+  .month-divider td { font-size: 10px; padding: 3px 6px; }
+}
 @media print {
   body { padding: 0; }
   th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -107,7 +124,7 @@ td.starter { text-align: left; padding-left: 8px; }
     <span id="mlb-home">&mdash;</span>
     <span id="mlb-away">&mdash;</span>
   </div>
-  <div id="mlb-content"><div class="loading">Loading schedule...</div></div>
+  <div id="mlb-content" class="table-wrap"><div class="loading">Loading schedule...</div></div>
 </div>
 
 <!-- COLLEGE PANEL -->
@@ -194,7 +211,7 @@ td.starter { text-align: left; padding-left: 8px; }
     <span id="college-home">&mdash;</span>
     <span id="college-away">&mdash;</span>
   </div>
-  <div id="college-content"><div class="loading">Select a team to load schedule...</div></div>
+  <div id="college-content" class="table-wrap"><div class="loading">Select a team to load schedule...</div></div>
 </div>
 
 <script>
